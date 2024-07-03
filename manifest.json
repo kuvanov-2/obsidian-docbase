@@ -1,0 +1,11 @@
+{
+	"id": "docbase-unofficial",
+	"name": "DocBase(Unofficial)",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "A simple plugin to combinate DocBase and Obsidian.",
+	"author": "yurikuvanov",
+	"authorUrl": "https://garden.yuri-k.com/notes/doc-base-unofficial-plugin-for-obsidian/",
+	"fundingUrl": "",
+	"isDesktopOnly": false
+}
