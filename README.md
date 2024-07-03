@@ -27,6 +27,10 @@ Caution: Pushing notes fuction is only available for the notes that are already 
 1. Before pushing a note, pulling the note from DocBase is highly recommended. Because pushing notes will overwrite the content of the DocBase note including the title, tags, and draft status.
 2. Open the command palette and run the "Push to DocBase" command.
 
+## Not yet implemented
+
+- Handling multiple DocBase teams.
+
 <!--
 ## Releasing new releases
 
