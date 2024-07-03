@@ -1,36 +1,34 @@
 export async function getDocBaseNote(accessToken: string, teamId: string, noteId: string) {
-    const response = await fetch(`https://api.docbase.io/teams/${teamId}/posts/${noteId}`, {
+    const url = `https://api.docbase.io/teams/${teamId}/posts/${noteId}`;
+
+    const response = await fetch(url, {
+        method: 'GET',
         headers: {
-            'X-DocBaseToken': accessToken
-        }
+            'Content-Type': 'application/json',
+            'X-DocBaseToken': accessToken,
+        },
     });
 
-    if (!response.ok) {
-        throw new Error('Network response was not ok');
-    }
-
-    const data = await response.json();
-    return {
-        title: data.title,
-        body: data.body,
-        tags: data.tags.map((tag: any) => ({ name: tag.name })),
-        draft: data.draft
-    };
+    return response;
 }
 
-export async function pushDocBaseNote(accessToken: string, teamId: string, noteId: string, requestBody: any) {
-    const response = await fetch(`https://api.docbase.io/teams/${teamId}/posts/${noteId}`, {
-        method: 'PATCH',
+export async function pushDocBaseNote(
+    accessToken: string,
+    teamId: string,
+    requestBody: { title: string; body: string; draft: boolean; tags: string[]; },
+    noteId?: string
+) {
+    const url = `https://api.docbase.io/teams/${teamId}/posts/${noteId ? noteId : ''}`;
+    const method = noteId ? 'PUT' : 'POST';
+
+    const response = await fetch(url, {
+        method,
         headers: {
+            'Content-Type': 'application/json',
             'X-DocBaseToken': accessToken,
-            'Content-Type': 'application/json'
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
     });
 
-    if (!response.ok) {
-        throw new Error('Network response was not ok');
-    }
-
-    return await response.json();
+    return response;
 }

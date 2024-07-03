@@ -1,4 +1,4 @@
-import { App, Plugin, PluginSettingTab, Setting, Notice, TFile, normalizePath } from 'obsidian';
+import { App, Plugin, PluginSettingTab, Setting, Notice, TFile } from 'obsidian';
 import { getDocBaseNote, pushDocBaseNote } from './api';
 
 interface DocBasePluginSettings {
@@ -8,62 +8,80 @@ interface DocBasePluginSettings {
 
 const DEFAULT_SETTINGS: DocBasePluginSettings = {
     accessToken: '',
-    teamId: ''
-};
+    teamId: '',
+}
 
 export default class DocBasePlugin extends Plugin {
     settings: DocBasePluginSettings;
 
     async onload() {
-        console.log('Loading DocBase Plugin');
         await this.loadSettings();
 
         this.addCommand({
-            id: 'push-docbase-note',
-            name: 'Push to DocBase',
-            checkCallback: (checking: boolean) => {
-                if (checking) {
-                    return !!this.app.workspace.getActiveFile();
-                }
-                const activeFile = this.app.workspace.getActiveFile();
-                if (activeFile) {
-                    this.pushToDocBase(activeFile.path);
-                }
-            }
+            id: 'pull-from-docbase',
+            name: 'Pull this note from DocBase',
+            callback: () => this.pullFromDocBase(),
         });
 
         this.addCommand({
-            id: 'pull-docbase-note',
-            name: 'Pull this note from DocBase',
-            checkCallback: (checking: boolean) => {
-                if (checking) {
-                    return !!this.app.workspace.getActiveFile();
-                }
-                const activeFile = this.app.workspace.getActiveFile();
-                if (activeFile) {
-                    this.pullFromDocBase(activeFile.path);
-                }
-            }
+            id: 'push-to-docbase',
+            name: 'Push this note to DocBase',
+            callback: () => this.pushToDocBase(),
         });
 
         this.addSettingTab(new DocBaseSettingTab(this.app, this));
     }
 
-    onunload() {
-        console.log('Unloading DocBase Plugin');
+    async pullFromDocBase() {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile) {
+            new Notice('No active file.');
+            return;
+        }
+
+        const content = await this.app.vault.read(activeFile);
+        const yamlMatch = content.match(/---\n([\s\S]*?)\n---/);
+
+        if (yamlMatch) {
+            const yamlContent = yamlMatch[1];
+            const docbaseNoteIdMatch = yamlContent.match(/docbase_note_id:\s*"(\d+)"|docbase_note_id:\s*(\d+)/);
+            const docbaseNoteId = docbaseNoteIdMatch ? (docbaseNoteIdMatch[1] || docbaseNoteIdMatch[2]) : null;
+
+            if (!docbaseNoteId) {
+                new Notice('docbase_note_id not found in the YAML front matter.');
+                return;
+            }
+
+            try {
+                const response = await getDocBaseNote(this.settings.accessToken, this.settings.teamId, docbaseNoteId as string);
+                if (response.status === 200) {
+                    const note = await response.json();
+                    const { title, body, draft, tags } = note;
+
+                    const newYaml = `---\ntitle: "${title}"\ndraft: ${draft}\ntags:\n${tags.map((tag: string) => `  - "${tag}"`).join('\n')}\ndocbase_note_id: "${docbaseNoteId}"\n---\n`;
+                    const newContent = `${newYaml}\n# ${title}\n\n${body}`;
+
+                    await this.app.vault.modify(activeFile, newContent);
+                    new Notice('Note pulled from DocBase successfully.');
+                } else {
+                    new Notice(`Failed to pull note from DocBase: ${response.statusText}`);
+                }
+            } catch (error) {
+                new Notice(`Failed to pull note from DocBase: ${error.message}`);
+            }
+        } else {
+            new Notice('YAML front matter not found.');
+        }
     }
 
-    async loadSettings() {
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-    }
+    async pushToDocBase() {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile) {
+            new Notice('No active file.');
+            return;
+        }
 
-    async saveSettings() {
-        await this.saveData(this.settings);
-    }
-
-    async pushToDocBase(filePath: string) {
-        const file = this.app.vault.getAbstractFileByPath(filePath) as TFile;
-        const content = await this.app.vault.read(file);
+        const content = await this.app.vault.read(activeFile);
         const match = content.match(/docbase_note_id:\s*"(\d+)"|docbase_note_id:\s*(\d+)/);
 
         if (match) {
@@ -82,43 +100,31 @@ export default class DocBasePlugin extends Plugin {
 
                 for (let i = 0; i < yamlLines.length; i++) {
                     const line = yamlLines[i].trim();
-                    console.log('Processing line:', line); // デバッグ用ログ
                     if (line.startsWith('title:')) {
                         title = line.replace('title:', '').trim().replace(/^"(.*)"$/, '$1');
                     } else if (line.startsWith('draft:')) {
                         draft = line.replace('draft:', '').trim() === 'true';
                     } else if (line.startsWith('tags:')) {
                         inTagsSection = true;
-                        console.log('Tags section found'); // デバッグ用ログ
                     } else if (inTagsSection) {
                         if (line.startsWith('- ')) {
                             const tag = line.replace('- ', '').trim().replace(/^"(.*)"$/, '$1');
                             tags.push(tag);
-                            console.log('Tag added:', tag); // デバッグ用ログ
                         } else {
                             inTagsSection = false; // タグセクションの終了を検出
-                            console.log('Tags section ended'); // デバッグ用ログ
                         }
                     }
                 }
-
-                // タグが一つしかない場合は文字列に変換
-                const docBaseTags = tags.length === 1 ? tags[0] : tags;
-
-                // 再度タグの最終結果を表示するためのログを追加
-                console.log('Final tags after processing:', docBaseTags); // デバッグ用ログ
 
                 const requestBody = {
                     title: title,
                     body: bodyContent,
                     draft: draft,
-                    tags: docBaseTags
+                    tags: tags
                 };
 
-                console.log('Request Body:', requestBody);  // デバッグ用ログ
-
                 try {
-                    await pushDocBaseNote(this.settings.accessToken, this.settings.teamId, docbaseNoteId, requestBody);
+                    await pushDocBaseNote(this.settings.accessToken, this.settings.teamId, requestBody, docbaseNoteId as string);
                     new Notice('DocBase note pushed successfully.');
                 } catch (error) {
                     new Notice('Failed to push note to DocBase.');
@@ -130,38 +136,18 @@ export default class DocBasePlugin extends Plugin {
             new Notice('docbase_note_id property not found.');
         }
     }
-	async pullFromDocBase(filePath: string) {
-		const file = this.app.vault.getAbstractFileByPath(filePath) as TFile;
-		const content = await this.app.vault.read(file);
-		const match = content.match(/docbase_note_id:\s*"(\d+)"|docbase_note_id:\s*(\d+)/);
-	
-		if (match) {
-			const docbaseNoteId = match[1] || match[2];
-			try {
-				const response = await getDocBaseNote(this.settings.accessToken, this.settings.teamId, docbaseNoteId);
-				const { title, body, draft, tags } = response;
-	
-				// Create new YAML header
-				let newYaml = `---\ntitle: "${title}"\ndraft: ${draft}\ntags:\n`;
-				tags.forEach((tag: { name: string }) => {
-					newYaml += `  - "${tag.name}"\n`;
-				});
-				newYaml += `docbase_note_id: "${docbaseNoteId}"\n---`;
-	
-				// Create new content
-				const newContent = `${newYaml}\n# ${title}\n${body}`;
-	
-				// Overwrite the file with the new content
-				await this.app.vault.modify(file, newContent);
-	
-				new Notice('DocBase note retrieved successfully.');
-			} catch (error) {
-				new Notice('Failed to retrieve note from DocBase.');
-			}
-		} else {
-			new Notice('docbase_note_id property not found.');
-		}
-	}
+
+    onunload() {
+        // Clean up any resources
+    }
+
+    async loadSettings() {
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    }
+
+    async saveSettings() {
+        await this.saveData(this.settings);
+    }
 }
 
 class DocBaseSettingTab extends PluginSettingTab {
@@ -181,24 +167,22 @@ class DocBaseSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Access Token')
-            .setDesc('Enter your DocBase access token')
+            .setDesc('Enter your DocBase access token.')
             .addText(text => text
-                .setPlaceholder('Enter your token')
+                .setPlaceholder('Enter your access token')
                 .setValue(this.plugin.settings.accessToken)
                 .onChange(async (value) => {
-                    console.log('Access Token: ' + value);
                     this.plugin.settings.accessToken = value;
                     await this.plugin.saveSettings();
                 }));
 
         new Setting(containerEl)
             .setName('Team ID')
-            .setDesc('Enter your DocBase team ID')
+            .setDesc('Enter your DocBase team ID.')
             .addText(text => text
                 .setPlaceholder('Enter your team ID')
                 .setValue(this.plugin.settings.teamId)
                 .onChange(async (value) => {
-                    console.log('Team ID: ' + value);
                     this.plugin.settings.teamId = value;
                     await this.plugin.saveSettings();
                 }));
