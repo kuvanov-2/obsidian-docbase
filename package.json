@@ -1,5 +1,5 @@
 {
-	"name": "DocBase(unofficial)",
+	"name": "docbase-unofficial",
 	"version": "1.0.0",
 	"description": "A simple plugin to get DocBase notes into your Obsidian notes.",
 	"main": "main.js",
@@ -17,8 +17,11 @@
 		"@typescript-eslint/parser": "5.29.0",
 		"builtin-modules": "3.3.0",
 		"esbuild": "0.17.3",
-		"obsidian": "latest",
-		"tslib": "2.4.0",
+		"obsidian": "^1.5.7-1",
+		"tslib": "^2.4.0",
 		"typescript": "4.7.4"
+	},
+	"dependencies": {
+		"axios": "^1.7.2"
 	}
 }
