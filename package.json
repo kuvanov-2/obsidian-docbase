@@ -1,6 +1,6 @@
 {
 	"name": "docbase-unofficial",
-	"version": "1.0.1",
+	"version": "1.0.0",
 	"description": "A simple plugin to get DocBase notes into your Obsidian notes.",
 	"main": "main.js",
 	"scripts": {
