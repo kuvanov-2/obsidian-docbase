@@ -56,9 +56,9 @@ export default class DocBasePlugin extends Plugin {
                 const response = await getDocBaseNote(this.settings.accessToken, this.settings.teamId, docbaseNoteId as string);
                 if (response.status === 200) {
                     const note = await response.json();
-                    const { title, body, draft, tags } = note;
+                    const { title, body, draft } = note;
 
-                    const newYaml = `---\ntitle: "${title}"\ndraft: ${draft}\ntags:\n${tags.map((tag: string) => `  - "${tag}"`).join('\n')}\ndocbase_note_id: "${docbaseNoteId}"\n---\n`;
+                    const newYaml = `---\ntitle: "${title}"\ndraft: ${draft}\ndocbase_note_id: "${docbaseNoteId}"\n---\n`;
                     const newContent = `${newYaml}\n# ${title}\n\n${body}`;
 
                     await this.app.vault.modify(activeFile, newContent);
@@ -95,8 +95,6 @@ export default class DocBasePlugin extends Plugin {
                 const yamlLines = yamlContent.split('\n');
                 let title = '';
                 let draft = false;
-                let tags: string[] = [];
-                let inTagsSection = false;
 
                 for (let i = 0; i < yamlLines.length; i++) {
                     const line = yamlLines[i].trim();
@@ -104,15 +102,6 @@ export default class DocBasePlugin extends Plugin {
                         title = line.replace('title:', '').trim().replace(/^"(.*)"$/, '$1');
                     } else if (line.startsWith('draft:')) {
                         draft = line.replace('draft:', '').trim() === 'true';
-                    } else if (line.startsWith('tags:')) {
-                        inTagsSection = true;
-                    } else if (inTagsSection) {
-                        if (line.startsWith('- ')) {
-                            const tag = line.replace('- ', '').trim().replace(/^"(.*)"$/, '$1');
-                            tags.push(tag);
-                        } else {
-                            inTagsSection = false; // タグセクションの終了を検出
-                        }
                     }
                 }
 
@@ -120,7 +109,6 @@ export default class DocBasePlugin extends Plugin {
                     title: title,
                     body: bodyContent,
                     draft: draft,
-                    tags: tags
                 };
 
                 try {
