@@ -17,7 +17,7 @@ This is a plugin for [Obsidian](https://obsidian.md) that allows you to pull and
    ```yaml
    docbase_note_id: 12345678
    ```
-3. Open the command palette and run the "Get from DocBase" command.
+3. Open the command palette and run the "Pull this note from DocBase" command.
 4. Title, tags, draft status, and content of the note will be inserted or updated with the content of the note in DocBase.
 
 ### Pushing notes
