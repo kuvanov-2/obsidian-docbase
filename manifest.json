@@ -1,11 +1,10 @@
 {
-	"id": "docbase-unofficial",
-	"name": "DocBase(Unofficial)",
-	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
-	"description": "A simple plugin to pull/push DocBase notes",
-	"author": "yurikuvanov",
-	"authorUrl": "https://garden.yuri-k.com/notes/doc-base-unofficial-plugin-for-obsidian/",
-	"fundingUrl": "",
-	"isDesktopOnly": false
+  "id": "docbase-unofficial",
+  "name": "DocBase (Unofficial)",
+  "version": "1.0.0",
+  "minAppVersion": "0.9.12",
+  "description": "Pull and push notes to DocBase",
+  "author": "yurikuvanov",
+  "authorUrl": "https://garden.yuri-k.com/",
+  "isDesktopOnly": false
 }
