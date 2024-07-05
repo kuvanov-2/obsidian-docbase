@@ -1,4 +1,4 @@
-export async function getDocBaseNote(accessToken: string, teamId: string, noteId: string) {
+export async function getDocBaseNote(accessToken: string, teamId: string, noteId: number) {
     const url = `https://api.docbase.io/teams/${teamId}/posts/${noteId}`;
 
     const response = await fetch(url, {
@@ -16,7 +16,7 @@ export async function pushDocBaseNote(
     accessToken: string,
     teamId: string,
     requestBody: { title: string; body: string; draft: boolean },
-    noteId?: string
+    noteId?: number
 ) {
     const url = `https://api.docbase.io/teams/${teamId}/posts/${noteId ? noteId : ''}`;
     const method = noteId ? 'PUT' : 'POST';

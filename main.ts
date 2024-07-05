@@ -44,8 +44,8 @@ export default class DocBasePlugin extends Plugin {
 
         if (yamlMatch) {
             const yamlContent = yamlMatch[1];
-            const docbaseNoteIdMatch = yamlContent.match(/docbase_note_id:\s*"(\d+)"|docbase_note_id:\s*(\d+)/);
-            const docbaseNoteId = docbaseNoteIdMatch ? (docbaseNoteIdMatch[1] || docbaseNoteIdMatch[2]) : null;
+            const docbaseNoteIdMatch = yamlContent.match(/docbase_note_id:\s*(\d+)/);
+            const docbaseNoteId = docbaseNoteIdMatch ? parseInt(docbaseNoteIdMatch[1], 10) : null;
 
             if (!docbaseNoteId) {
                 new Notice('docbase_note_id not found in the YAML front matter.');
@@ -53,12 +53,12 @@ export default class DocBasePlugin extends Plugin {
             }
 
             try {
-                const response = await getDocBaseNote(this.settings.accessToken, this.settings.teamId, docbaseNoteId as string);
+                const response = await getDocBaseNote(this.settings.accessToken, this.settings.teamId, docbaseNoteId as number);
                 if (response.status === 200) {
                     const note = await response.json();
                     const { title, body, draft } = note;
 
-                    const newYaml = `---\ntitle: "${title}"\ndraft: ${draft}\ndocbase_note_id: "${docbaseNoteId}"\n---\n`;
+                    const newYaml = `---\ntitle: "${title}"\ndraft: ${draft}\ndocbase_note_id: ${docbaseNoteId}\n---\n`;
                     const newContent = `${newYaml}\n# ${title}\n\n${body}`;
 
                     await this.app.vault.modify(activeFile, newContent);
@@ -82,10 +82,10 @@ export default class DocBasePlugin extends Plugin {
         }
 
         const content = await this.app.vault.read(activeFile);
-        const match = content.match(/docbase_note_id:\s*"(\d+)"|docbase_note_id:\s*(\d+)/);
+        const match = content.match(/docbase_note_id:\s*(\d+)/);
 
         if (match) {
-            const docbaseNoteId = match[1] || match[2];
+            const docbaseNoteId = parseInt(match[1], 10);
             const yamlHeaderMatch = content.match(/---\n([\s\S]*?)\n---/);
             const bodyMatch = content.match(/#\s*(.*?)\n([\s\S]*)/);
 
@@ -112,7 +112,7 @@ export default class DocBasePlugin extends Plugin {
                 };
 
                 try {
-                    await pushDocBaseNote(this.settings.accessToken, this.settings.teamId, requestBody, docbaseNoteId as string);
+                    await pushDocBaseNote(this.settings.accessToken, this.settings.teamId, requestBody, docbaseNoteId as number);
                     new Notice('DocBase note pushed successfully.');
                 } catch (error) {
                     new Notice('Failed to push note to DocBase.');
