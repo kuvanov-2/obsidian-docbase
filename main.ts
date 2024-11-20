@@ -69,12 +69,13 @@ export default class DocBasePlugin extends Plugin {
             const response = await getDocBaseNote(this.settings.accessToken, this.settings.teamId, docbaseNoteId as string);
             if (response.status === 200) {
                 const note = await response.json();
-                const { title, body, draft, tags } = note;
+                const { title, body, draft } = note;
 
+                const existingFrontmatter = this.app.metadataCache.getFileCache(activeFile)?.frontmatter || {};
                 const newYaml = stringifyYaml({
+                    ...existingFrontmatter,
                     title: title,
                     draft: draft,
-                    tags: tags,
                     docbase_note_id: docbaseNoteId
                 });
                 const newContent = `---\n${newYaml}---\n\n# ${title}\n\n${body}`;
@@ -109,13 +110,12 @@ export default class DocBasePlugin extends Plugin {
 
         if (frontmatter && bodyMatch) {
             const bodyContent = bodyMatch[2];
-            const { title, draft, tags } = frontmatter;
+            const { title, draft } = frontmatter;
 
             const requestBody = {
                 title: title,
                 body: bodyContent,
-                draft: draft || false,
-                tags: tags || []
+                draft: draft || false
             };
 
             try {
@@ -125,7 +125,7 @@ export default class DocBasePlugin extends Plugin {
                 new Notice('Failed to push note to DocBase.');
             }
         } else {
-            new Notice('Failed to parse note content.');
+            new Notice('Failed to parse content.');
         }
     }
 

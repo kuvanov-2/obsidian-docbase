@@ -15,7 +15,7 @@ export async function getDocBaseNote(accessToken: string, teamId: string, noteId
 export async function pushDocBaseNote(
     accessToken: string,
     teamId: string,
-    requestBody: { title: string; body: string; draft: boolean; tags: string[]; },
+    requestBody: { title: string; body: string; draft: boolean;  },
     noteId?: string
 ) {
     const url = `https://api.docbase.io/teams/${teamId}/posts/${noteId ? noteId : ''}`;
